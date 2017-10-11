@@ -6,7 +6,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"net"
 	"os"
