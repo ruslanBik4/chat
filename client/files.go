@@ -55,6 +55,8 @@ func sendFile() {
 		switch err {
 		case os.ErrNotExist:
 			fmt.Print("not found file")
+		default:
+			fmt.Print(err)
 		}
 	}()
 
@@ -65,7 +67,8 @@ func sendFile() {
 
 	reader, err := os.Open(fileName)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 
 	defer reader.Close()
@@ -85,7 +88,8 @@ func sendFile() {
 
 	n, err := fc.readFrom(reader)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 	fmt.Printf("send %d bytes", n)
 }
@@ -107,10 +111,17 @@ func getFile()  {
 	fileNumber, _ := inputStr("Введите номер файла:")
 	fc.sendMessage(fileNumber)
 
-	if fileName, err := fc.readMessage(); err != nil {
+	if str, err := fc.readMessage(); err != nil || (str != "ready") {
 		fmt.Printf("Ошибка при приеме имени файла - %v", err)
 		return
 	} else {
+		fileName, err := fc.readMessage()
+
+		if err != nil {
+			fmt.Printf("Ошибка при приеме имени файла - %v", err)
+			return
+
+		}
 		fc.saveFile(fileName)
 	}
 

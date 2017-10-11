@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"errors"
 )
 type fileChannel struct {
 	conn net.Conn
@@ -47,6 +48,10 @@ func (fc *fileChannel) readFrom(file *os.File) (int64, error) {
 const dirUploadFiles = "files"
 func (fc *fileChannel) saveFile(fileName string) (n int64, err error) {
 	writeFile, err := os.Create(path.Join(dirUploadFiles, fileName))
+
+	if err != nil {
+		return 0, err
+	}
 	return fc.reader.WriteTo(writeFile)
 }
 func (fc *fileChannel) Close() {
@@ -112,16 +117,18 @@ func (fc *fileChannel) sendFile() error{
 		if err != nil {
 			return err
 		}
-		if fileNumber > len(files) {
-			return err
-		}
-		reader, err := os.Open(files[fileNumber])
-		if err != nil {
-			return err
-		}
+		if fileNumber < len(files) {
+			reader, err := os.Open(files[fileNumber])
+			if err != nil {
+				return err
+			}
 
-		defer reader.Close()
-		_, err = fc.readFrom(reader)
+			defer reader.Close()
+			fc.sendMessage(path.Base(reader.Name()))
+			_, err = fc.readFrom(reader)
+		} else {
+			return errors.New( fmt.Sprintf("Number %d not in file list!", fileNumber))
+		}
 	}
 
 	return err
@@ -138,6 +145,7 @@ func (fc *fileChannel) handle()  {
 		}
 		if err != nil {
 			fmt.Println(err)
+			fc.sendAnswer(err.Error())
 		}
 	}
 }
