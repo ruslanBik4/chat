@@ -5,18 +5,20 @@
 package main
 
 import (
-	"os"
 	"bufio"
-	"path"
-	"net"
 	"fmt"
+	"net"
+	"os"
+	"path"
 )
+
 // отвечает за создание соединения с сервером для передачи файлов
 type fileChannel struct {
-	conn net.Conn
+	conn   net.Conn
 	reader *bufio.Reader
 	writer *bufio.Writer
 }
+
 func (fc *fileChannel) sendMessage(str string) {
 	sendMessage(fc.writer, str)
 }
@@ -26,7 +28,9 @@ func (fc *fileChannel) readMessage() (string, error) {
 func (fc *fileChannel) readFrom(file *os.File) (int64, error) {
 	return fc.writer.ReadFrom(file)
 }
+
 const dirDownloadFiles = "files"
+
 func (fc *fileChannel) saveFile(fileName string) (n int64, err error) {
 	writeFile, err := os.Create(path.Join(dirDownloadFiles, fileName))
 	return fc.reader.WriteTo(writeFile)
@@ -36,18 +40,20 @@ func (fc *fileChannel) Close() {
 }
 func newFileChannel() *fileChannel {
 
-	conn, err := net.Dial("tcp", *fPortFile )
+	conn, err := net.Dial("tcp", *fPortFile)
 	if err != nil {
 		panic(err)
 	}
 
 	return &fileChannel{
-		conn: conn,
+		conn:   conn,
 		reader: bufio.NewReader(conn),
 		writer: bufio.NewWriter(conn),
 	}
 }
+
 const maxFileSize = 1000000000
+
 func sendFile() {
 
 	defer func() {
@@ -103,26 +109,30 @@ func inputStr(title string) (str string, err error) {
 
 	return
 }
-func getFile()  {
+func getFile() {
 	fc := newFileChannel()
 	defer fc.Close()
 
 	fc.sendMessage(":file")
-	fileNumber, _ := inputStr("Введите номер файла:")
-	fc.sendMessage(fileNumber)
+	fileNumber, err := inputStr("Введите номер файла:")
+	if err == nil {
+		fc.sendMessage(fileNumber)
 
-	if str, err := fc.readMessage(); err != nil || (str != "ready") {
-		fmt.Printf("Ошибка при приеме имени файла - %v", err)
-		return
-	} else {
-		fileName, err := fc.readMessage()
-
-		if err != nil {
+		if str, err := fc.readMessage(); err != nil || (str != "ready") {
 			fmt.Printf("Ошибка при приеме имени файла - %v", err)
 			return
+		} else {
+			str, err = fc.readMessage()
 
+			if err == nil {
+				fc.saveFile(str)
+			}
 		}
-		fc.saveFile(fileName)
+	}
+	if err != nil {
+		fmt.Printf("Ошибка при приеме имени файла - %v", err)
+		return
+
 	}
 
 }

@@ -5,21 +5,23 @@
 package main
 
 import (
-	"net"
 	"bufio"
+	"errors"
+	"fmt"
+	"net"
 	"os"
 	"path"
-	"strings"
-	"fmt"
 	"path/filepath"
 	"strconv"
-	"errors"
+	"strings"
 )
+
 type fileChannel struct {
-	conn net.Conn
+	conn   net.Conn
 	reader *bufio.Reader
 	writer *bufio.Writer
 }
+
 func (fc *fileChannel) sendAnswer(str string) {
 
 	_, err := fc.writer.WriteString(str + "\n")
@@ -36,7 +38,7 @@ func (fc *fileChannel) sendMessage(str string) {
 func (fc *fileChannel) readMessage() (string, error) {
 	str, err := fc.reader.ReadString('\n')
 	if err != nil {
-		fmt.Printf("Error by recieved: %#v\n", err)
+		fmt.Printf("Error by received: %#v\n", err)
 		return "", err
 	}
 
@@ -45,7 +47,9 @@ func (fc *fileChannel) readMessage() (string, error) {
 func (fc *fileChannel) readFrom(file *os.File) (int64, error) {
 	return fc.writer.ReadFrom(file)
 }
+
 const dirUploadFiles = "files"
+
 func (fc *fileChannel) saveFile(fileName string) (n int64, err error) {
 	writeFile, err := os.Create(path.Join(dirUploadFiles, fileName))
 
@@ -60,7 +64,7 @@ func (fc *fileChannel) Close() {
 func newFileChannel(conn net.Conn) *fileChannel {
 
 	return &fileChannel{
-		conn: conn,
+		conn:   conn,
 		reader: bufio.NewReader(conn),
 		writer: bufio.NewWriter(conn),
 	}
@@ -75,16 +79,17 @@ func fileList() string {
 	list := ""
 	for i, name := range files {
 
-		shortName := strings.TrimPrefix(name, dirUploadFiles + "/")
+		shortName := strings.TrimPrefix(name, dirUploadFiles+"/")
 		if strings.HasPrefix(shortName, ".") {
 			continue
 		}
-		list += fmt.Sprintf("%d. %s\n", i, shortName )
+		list += fmt.Sprintf("%d. %s\n", i, shortName)
 	}
 	return list
 }
+
 // прием и запись файла
-func (fc *fileChannel) getFile()  error {
+func (fc *fileChannel) getFile() error {
 
 	var n int64
 
@@ -99,11 +104,12 @@ func (fc *fileChannel) getFile()  error {
 		return err
 	}
 
-	fmt.Printf("recieved bytes - %d", n)
+	fmt.Printf("received bytes - %d", n)
 	return nil
 }
+
 // отправка файла
-func (fc *fileChannel) sendFile() error{
+func (fc *fileChannel) sendFile() error {
 	fc.sendAnswer("ready")
 
 	str, err := fc.readMessage()
@@ -127,17 +133,17 @@ func (fc *fileChannel) sendFile() error{
 			fc.sendMessage(path.Base(reader.Name()))
 			_, err = fc.readFrom(reader)
 		} else {
-			return errors.New( fmt.Sprintf("Number %d not in file list!", fileNumber))
+			return fmt.Errorf("Number %d not in file list!", fileNumber)
 		}
 	}
 
 	return err
 }
-func (fc *fileChannel) handle()  {
+func (fc *fileChannel) handle() {
 	str, err := fc.readMessage()
 	if err == nil {
 
-		switch str  {
+		switch str {
 		case "file:":
 			err = fc.getFile()
 		case ":file":

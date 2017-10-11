@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func sendMessage(writer *bufio.Writer, str string) error{
+func sendMessage(writer *bufio.Writer, str string) error {
 	n, err := writer.WriteString(str + "\n")
 	if err != nil {
 		fmt.Printf("Error by sending: %#v\n", err)
@@ -29,7 +29,7 @@ func sendMessage(writer *bufio.Writer, str string) error{
 func readMessage(reader *bufio.Reader) (string, error) {
 	str, err := reader.ReadString('\n')
 	if err != nil {
-		fmt.Printf("Error by recieved: %#v\n", err)
+		fmt.Printf("Error by received: %#v\n", err)
 		return "", err
 	}
 

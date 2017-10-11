@@ -1,4 +1,5 @@
 Чат(серверная и клиентская часть)
+<a href="https://goreportcard.com/badge/github.com/ruslanBik4/chat"> <img src="https://goreportcard.com/badge/github.com/ruslanBik4/chat" /> </a>
 
  Настройка параметров соединения проихводится с помощью флагов командной строки.
  Есть простой режим отладки.

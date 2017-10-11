@@ -5,18 +5,18 @@
 package main
 
 import (
-	"net"
-	"fmt"
-	"sync"
 	"bufio"
-	_ "net/http/pprof"
 	"flag"
+	"fmt"
+	"net"
+	_ "net/http/pprof"
+	"sync"
 )
 
 func getUserInput(conn net.Conn, wg *sync.WaitGroup) {
 
 	writer := bufio.NewWriter(conn)
-	for isExit := false; !isExit ; {
+	for isExit := false; !isExit; {
 		var str string
 		_, err := fmt.Scanln(&str)
 		if err != nil {
@@ -64,17 +64,19 @@ func showGreeting() {
 	"exit"  - завершить работу
 Приятной работы!`)
 }
+
 // переменные конфигурации
 var (
-	fPort    = flag.String("port", ":8080", "host address to connected")
-	fPortFile= flag.String("portFile", ":2121", "host port for file transfer")
- 	fDebug   = flag.Bool("debug", true, "debug mode")
+	fPort     = flag.String("port", ":8080", "host address to connected")
+	fPortFile = flag.String("portFile", ":2121", "host port for file transfer")
+	fDebug    = flag.Bool("debug", true, "debug mode")
 )
-func main()  {
+
+func main() {
 
 	flag.Parse()
 
-	conn, err := net.Dial("tcp", *fPort )
+	conn, err := net.Dial("tcp", *fPort)
 	if err != nil {
 		panic(err)
 	}

@@ -5,22 +5,24 @@
 package main
 
 import (
-	"net"
-	"fmt"
 	"bufio"
-	"io"
-	"strings"
 	"flag"
+	"fmt"
+	"io"
+	"net"
+	"strings"
 )
+
 // организует канал связи с посетителем
 type chatChannel struct {
-	conn net.Conn
-	reader *bufio.Reader
-	writer *bufio.Writer
-	inChan chan string
-	outChan chan <- string
+	conn    net.Conn
+	reader  *bufio.Reader
+	writer  *bufio.Writer
+	inChan  chan string
+	outChan chan<- string
 }
-func (c *chatChannel) sendAnswer( str string) {
+
+func (c *chatChannel) sendAnswer(str string) {
 
 	_, err := c.writer.WriteString(str + "\n")
 	if err != nil {
@@ -30,22 +32,23 @@ func (c *chatChannel) sendAnswer( str string) {
 	c.writer.Flush()
 
 }
+
 // cnstructor
-func newChatChannel(conn net.Conn, outChan chan <- string) *chatChannel {
+func newChatChannel(conn net.Conn, outChan chan<- string) *chatChannel {
 
 	return &chatChannel{
-		conn: conn,
-		reader: bufio.NewReader(conn),
-		writer: bufio.NewWriter(conn),
-		inChan: make(chan string),
-		outChan:outChan,
+		conn:    conn,
+		reader:  bufio.NewReader(conn),
+		writer:  bufio.NewWriter(conn),
+		inChan:  make(chan string),
+		outChan: outChan,
 	}
 }
 
-func (c *chatChannel) handle(){
+func (c *chatChannel) handle() {
 
 	go func() {
-		for str := range c.inChan{
+		for str := range c.inChan {
 
 			c.sendAnswer(str)
 		}
@@ -74,21 +77,23 @@ func (c *chatChannel) handle(){
 		}
 	}
 }
+
 var (
-	fPort    = flag.String("port", ":8080", "host address to listen on")
-	fPortFile= flag.String("portFile", ":2121", "host port for file transfer")
-	fDebug = flag.Bool("debug", true, "debug mode")
+	fPort     = flag.String("port", ":8080", "host address to listen on")
+	fPortFile = flag.String("portFile", ":2121", "host port for file transfer")
+	fDebug    = flag.Bool("debug", true, "debug mode")
 )
-func main()  {
+
+func main() {
 	flag.Parse()
 
 	// созджаем систему для рассылки сообщений
-	broadcast := make([] *chatChannel, 0)
+	broadcast := make([]*chatChannel, 0)
 	chanBroadcast := make(chan string)
 
 	go func() {
 		for {
-			str := <- chanBroadcast
+			str := <-chanBroadcast
 			for _, ch := range broadcast {
 				ch.inChan <- str
 			}
