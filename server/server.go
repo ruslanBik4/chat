@@ -24,13 +24,16 @@ type chatChannel struct {
 
 func (c *chatChannel) sendAnswer(str string) {
 
-	_, err := c.writer.WriteString(str + "\n")
+	n, err := c.writer.WriteString(str + "\n")
 	if err != nil {
 		fmt.Print(err)
 	}
 
 	c.writer.Flush()
 
+	if *fDebug {
+		fmt.Print(n)
+	}
 }
 
 // cnstructor
@@ -72,7 +75,9 @@ func (c *chatChannel) handle() {
 			c.sendAnswer("Вы можете скачать файл, введя команду :file")
 		default:
 
-			fmt.Println(str)
+			if *fDebug {
+				fmt.Println(str)
+			}
 			c.outChan <- str
 		}
 	}
@@ -94,7 +99,10 @@ func main() {
 	go func() {
 		for {
 			str := <-chanBroadcast
-			for _, ch := range broadcast {
+			for i, ch := range broadcast {
+				if *fDebug {
+					fmt.Print(i)
+				}
 				ch.inChan <- str
 			}
 		}
