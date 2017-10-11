@@ -12,11 +12,13 @@ import (
 	"strings"
 	"flag"
 )
+// организует канал связи с посетителем
 type chatChannel struct {
 	conn net.Conn
 	reader *bufio.Reader
 	writer *bufio.Writer
 	inChan chan string
+	outChan chan <- string
 }
 func (c *chatChannel) sendAnswer( str string) {
 
@@ -28,17 +30,24 @@ func (c *chatChannel) sendAnswer( str string) {
 	c.writer.Flush()
 
 }
-func newChatChannel(conn net.Conn, inChan chan string) *chatChannel {
+// cnstructor
+func newChatChannel(conn net.Conn, outChan chan <- string) *chatChannel {
 
 	return &chatChannel{
 		conn: conn,
 		reader: bufio.NewReader(conn),
 		writer: bufio.NewWriter(conn),
-		inChan: inChan,
+		inChan: make(chan string),
+		outChan:outChan,
 	}
 }
 
 func (c *chatChannel) handle(){
+
+	go func() {
+		str := <- c.inChan
+		c.sendAnswer(str)
+	}()
 	for {
 		str, err := c.reader.ReadString('\n')
 		if err != nil {
@@ -59,7 +68,7 @@ func (c *chatChannel) handle(){
 		default:
 
 			fmt.Println(str)
-			c.inChan <- str
+			c.outChan <- str
 		}
 	}
 }
@@ -69,7 +78,19 @@ var (
 )
 func main()  {
 	flag.Parse()
+
+	// созджаем систему для рассылки сообщений
+	broadcast := make([] *chatChannel, 0)
 	chanBroadcast := make(chan string)
+
+	go func() {
+		for {
+			str := <- chanBroadcast
+			for _, ch := range broadcast {
+				ch.inChan <- str
+			}
+		}
+	}()
 
 	go startFileServer()
 	ln, err := net.Listen("tcp", *fPort)
@@ -88,6 +109,8 @@ func main()  {
 		// запускаем отдельный поток для каждого соединения чата
 		c := newChatChannel(conn, chanBroadcast)
 		go c.handle()
+
+		broadcast = append(broadcast, c)
 
 	}
 }
