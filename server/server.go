@@ -68,7 +68,7 @@ func (c *chatChannel) handle() {
 			continue
 		}
 
-		str = strings.Trim(str, "\n\r ")
+		str = strings.TrimSuffix(str, "\n")
 		switch str {
 		case ":list":
 			c.sendAnswer(fileList())
