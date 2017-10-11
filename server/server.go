@@ -45,8 +45,10 @@ func newChatChannel(conn net.Conn, outChan chan <- string) *chatChannel {
 func (c *chatChannel) handle(){
 
 	go func() {
-		str := <- c.inChan
-		c.sendAnswer(str)
+		for {
+			str := <-c.inChan
+			c.sendAnswer(str)
+		}
 	}()
 	for {
 		str, err := c.reader.ReadString('\n')
