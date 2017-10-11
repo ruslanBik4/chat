@@ -45,8 +45,8 @@ func newChatChannel(conn net.Conn, outChan chan <- string) *chatChannel {
 func (c *chatChannel) handle(){
 
 	go func() {
-		for {
-			str := <-c.inChan
+		for str := range c.inChan{
+
 			c.sendAnswer(str)
 		}
 	}()
