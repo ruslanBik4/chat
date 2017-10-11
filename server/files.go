@@ -29,7 +29,6 @@ func (fc *fileChannel) sendAnswer(str string) {
 	fc.writer.Flush()
 
 }
-
 func (fc *fileChannel) sendMessage(str string) {
 	fc.sendMessage(str)
 }
@@ -143,7 +142,7 @@ func (fc *fileChannel) handle()  {
 	}
 }
 func startFileServer() {
-	ln, err := net.Listen("tcp", ":2121")
+	ln, err := net.Listen("tcp", *fPortFile)
 	if err != nil {
 		// handle error
 		panic(err)

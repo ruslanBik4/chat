@@ -74,6 +74,7 @@ func (c *chatChannel) handle(){
 }
 var (
 	fPort    = flag.String("port", ":8080", "host address to listen on")
+	fPortFile= flag.String("portFile", ":2121", "host port for file transfer")
 	fDebug = flag.Bool("debug", true, "debug mode")
 )
 func main()  {

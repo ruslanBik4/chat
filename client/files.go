@@ -36,7 +36,7 @@ func (fc *fileChannel) Close() {
 }
 func newFileChannel() *fileChannel {
 
-	conn, err := net.Dial("tcp", ":2121" )
+	conn, err := net.Dial("tcp", *fPortFile )
 	if err != nil {
 		panic(err)
 	}

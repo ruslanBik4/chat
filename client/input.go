@@ -66,7 +66,8 @@ func showGreeting() {
 }
 // переменные конфигурации
 var (
-	fPort    = flag.String("port", ":8080", "host port to connetced")
+	fPort    = flag.String("port", ":8080", "host address to connected")
+	fPortFile= flag.String("portFile", ":2121", "host port for file transfer")
  	fDebug   = flag.Bool("debug", true, "debug mode")
 )
 func main()  {
