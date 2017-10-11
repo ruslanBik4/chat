@@ -31,7 +31,7 @@ func (fc *fileChannel) sendAnswer(str string) {
 
 }
 func (fc *fileChannel) sendMessage(str string) {
-	fc.sendMessage(str)
+	fc.sendAnswer(str)
 }
 func (fc *fileChannel) readMessage() (string, error) {
 	str, err := fc.reader.ReadString('\n')
