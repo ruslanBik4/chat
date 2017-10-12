@@ -11,6 +11,9 @@ import (
 	"net"
 	_ "net/http/pprof"
 	"sync"
+	"os"
+	"runtime"
+	"runtime/pprof"
 )
 
 func getUserInput(conn net.Conn, wg *sync.WaitGroup) {
@@ -70,8 +73,23 @@ var (
 	fPort     = flag.String("port", ":8080", "host address to connected")
 	fPortFile = flag.String("portFile", ":2121", "host port for file transfer")
 	fDebug    = flag.Bool("debug", true, "debug mode")
+	memprofile = flag.String("memprofile", "", "write memory profile to `file`")
 )
+func RunProfiler() {
+	if *memprofile != "" {
+		f, err := os.Create(*memprofile)
+		if err != nil {
+			fmt.Println("could not create memory profile: ", err)
+			return
+		}
+		defer f.Close()
 
+		runtime.GC() // get up-to-date statistics
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			fmt.Println("could not write memory profile: ", err)
+		}
+	}
+}
 func main() {
 
 	flag.Parse()
