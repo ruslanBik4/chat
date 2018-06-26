@@ -27,14 +27,18 @@ func getUserInput(conn net.Conn, wg *sync.WaitGroup) {
 			break
 		}
 		switch str {
-		case "exit":
+		case ":exit":
+			err = sendMessage(writer, str)
 			isExit = true
 		case ":file":
 			getFile()
 		case "file:":
 			sendFile()
 		default:
-			sendMessage(writer, str)
+			err = sendMessage(writer, str)
+		}
+		if err != nil {
+			fmt.Println(err)
 		}
 	}
 
@@ -56,16 +60,6 @@ func readAnswer(conn net.Conn, wg *sync.WaitGroup) {
 	}
 	wg.Done()
 
-}
-func showGreeting() {
-	fmt.Println(`Добро пожаловать в наш тестовый чат,
-	Вы можете отправлять сообщения нажатием клавиши Enter.
-	Перечень доступных команд:
-	"file:" - отправить файл,
-	":list" - получить список файлов с сервера
-	":file" - получить файл с сервера
-	"exit"  - завершить работу
-Приятной работы!`)
 }
 
 // переменные конфигурации
@@ -104,7 +98,6 @@ func main() {
 	go getUserInput(conn, wg)
 	go readAnswer(conn, wg)
 
-	showGreeting()
 	wg.Wait()
 
 }

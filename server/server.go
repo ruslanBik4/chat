@@ -11,8 +11,8 @@ import (
 	"io"
 	"net"
 	"strings"
+	"time"
 )
-
 // организует канал связи с посетителем
 type chatChannel struct {
 	conn    net.Conn
@@ -20,8 +20,17 @@ type chatChannel struct {
 	writer  *bufio.Writer
 	inChan  chan string
 	outChan chan<- string
+	isClose bool
+	nick string
 }
-
+func (c *chatChannel) Close() error {
+	c.isClose = true
+	err := usersStore.delUser(c.nick)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return c.conn.Close()
+}
 func (c *chatChannel) sendAnswer(str string) {
 
 	n, err := c.writer.WriteString(str + "\n")
@@ -35,9 +44,26 @@ func (c *chatChannel) sendAnswer(str string) {
 		fmt.Print(n)
 	}
 }
+func (c *chatChannel) readMessage() string {
+	str, err := c.reader.ReadString('\n')
+	if err != nil {
+		// завершение работы потока
+		if err == io.EOF {
+			fmt.Println(c.nick + " покидает нас!")
+			err = c.Close()
+			c.outChan <- c.nick + " покидает нас!"
+		}
+		if err != nil {
+			fmt.Print(err)
+		}
+		return ""
+	}
 
-// cnstructor
-func newChatChannel(conn net.Conn, outChan chan<- string) *chatChannel {
+	return strings.TrimSuffix(str, "\n" )
+}
+
+// constructor
+func newChatChannel(conn net.Conn, outChan chan<- string, nick string) *chatChannel {
 
 	return &chatChannel{
 		conn:    conn,
@@ -45,44 +71,102 @@ func newChatChannel(conn net.Conn, outChan chan<- string) *chatChannel {
 		writer:  bufio.NewWriter(conn),
 		inChan:  make(chan string),
 		outChan: outChan,
+		nick:	 nick,
 	}
 }
+func (c *chatChannel) setNick(nick string) bool {
+	if nick == ""   {
+		return false
+	}
 
-func (c *chatChannel) handle() {
+	user := usersStore.newUserNick(nick)
+	if user == nil {
+		c.sendAnswer("такое имя уже используется")
+		fmt.Println(user)
+		return false
+	}
+	if !user.active {
+		c.sendAnswer("введите пароль")
+		pass := c.readMessage()
+		if pass != user.Pass {
+			c.sendAnswer("неверный пароль")
+			return false
+		}
+		c.sendAnswer("А мы Вас ждем АЖ с " + user.LastLogin.String())
+		user.LastLogin = time.Now()
+		user.active = true
+	}
+	c.outChan <- "Пользователь '" + c.nick + "' сменил имя на - " + nick
+	c.nick = nick
+	return true
+}
 
+func (c *chatChannel) handle(userList [] string) {
+
+	c.showGreeting()
+	c.sendAnswer("Сейчас присутствуют : " + strings.Join( userList, ",") )
+	c.outChan <- "К нам приходит " + c.nick
 	go func() {
 		for str := range c.inChan {
-
 			c.sendAnswer(str)
-		}
-	}()
-	for {
-		str, err := c.reader.ReadString('\n')
-		if err != nil {
-			// завершение работы потока
-			if err == io.EOF {
-				fmt.Println(" ends of bytes from stream")
+			if c.isClose {
 				break
 			}
-			fmt.Print(err)
-			continue
 		}
+	}()
+	for !c.isClose {
+		str := c.readMessage()
 
-		str = strings.TrimSuffix(str, "\n")
 		switch str {
+		case "":
+			continue
+		case ":exit":
+			c.sayGoodBy()
+			c.outChan <- "Нас покидает " + c.nick
 		case ":list":
 			c.sendAnswer(fileList())
-			c.sendAnswer("Вы можете скачать файл, введя команду :file")
+		case ":nick":
+			c.sendAnswer("введите имя:")
+			nick := c.readMessage()
+			if c.setNick(nick) {
+				c.sendAnswer("успешно сменили имя" )
+			} else {
+				c.sendAnswer("смена ника не удалась" )
+			}
+		case ":register":
+			pass := c.readMessage()
+			oldNick := c.nick
+			if err := usersStore.putUser(c.nick, pass); err == nil {
+				c.sendAnswer("успешно зарегистрировались" )
+				c.outChan <- "Пользователь '" + oldNick + "' сменил имя на - " + c.nick
+			} else {
+				c.sendAnswer("регистрация ника не удалась - " + err.Error() )
+			}
 		default:
 
 			if *fDebug {
 				fmt.Println(str)
 			}
-			c.outChan <- str
+			c.outChan <- c.nick + ">" + str
 		}
 	}
-}
 
+}
+func (c *chatChannel) showGreeting() {
+	c.sendAnswer(`Добро пожаловать в наш тестовый чат,` + c.nick + `
+	Вы можете отправлять сообщения нажатием клавиши Enter.
+	Перечень доступных команд:
+	"file:" - отправить файл,
+	":list" - получить список файлов с сервера
+	":file" - получить файл с сервера
+	":nick" - сменить текущий нил
+	":register" - зарегистрироть пароль для ника
+	":exit"  - завершить работу
+Приятной работы!`)
+}
+func (c *chatChannel) sayGoodBy() {
+	c.sendAnswer("GoodBy")
+}
 var (
 	fPort     = flag.String("port", ":8080", "host address to listen on")
 	fPortFile = flag.String("portFile", ":2121", "host port for file transfer")
@@ -103,7 +187,9 @@ func main() {
 				if *fDebug {
 					fmt.Print(i)
 				}
-				ch.inChan <- str
+				if !ch.isClose {
+					ch.inChan <- str
+				}
 			}
 		}
 	}()
@@ -122,9 +208,15 @@ func main() {
 			fmt.Println(err)
 			continue
 		}
+		newNick := fmt.Sprintf("Guest%d", len(broadcast))
 		// запускаем отдельный поток для каждого соединения чата
-		c := newChatChannel(conn, chanBroadcast)
-		go c.handle()
+		c := newChatChannel(conn, chanBroadcast, newNick)
+
+		userList := make([]string, len(broadcast))
+		for key, ch := range broadcast {
+			userList[key] = ch.nick
+		}
+		go c.handle(userList)
 
 		broadcast = append(broadcast, c)
 

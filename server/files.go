@@ -84,6 +84,11 @@ func fileList() string {
 		}
 		list += fmt.Sprintf("%d. %s\n", i, shortName)
 	}
+	if list == "" {
+		return "Файлов для скачивания пока в хранилище нет"
+	}
+
+	list += "Вы можете скачать файл, введя команду :file"
 	return list
 }
 

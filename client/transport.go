@@ -8,11 +8,14 @@ import (
 	"bufio"
 	"fmt"
 	"strings"
+	"io"
 )
 
 func sendMessage(writer *bufio.Writer, str string) error {
 	n, err := writer.WriteString(str + "\n")
-	if err != nil {
+	if err == io.EOF {
+		fmt.Println(" ends of bytes from stream")
+	} else if err != nil {
 		fmt.Printf("Error by sending: %#v\n", err)
 		return err
 	}
